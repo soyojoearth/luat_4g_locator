@@ -25,6 +25,8 @@ https://doc.openluat.com/wiki/52?wiki_page_id=5128
 你只要去注册好小程序账号，然后起个名字，准备好logo，好了后通知我们，我们就给你把小程序部署上去。
 注册流程：https://kf.qq.com/faq/170109iQBJ3Q170109JbQfiu.html
 
+注意：只有企业账号注册的小程序，才可以有接入智能硬件的权限！！
+
 ### 小程序漂亮不 ^_^
 ![avatar](/images/miniprogram.jpg)
 
