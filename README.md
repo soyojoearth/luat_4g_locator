@@ -27,3 +27,6 @@ https://doc.openluat.com/wiki/52?wiki_page_id=5128
 
 ### 小程序漂亮不 ^_^
 ![avatar](/images/miniprogram.jpg)
+
+
+## 联系微信： napshen  （暗号：芝麻开门）
