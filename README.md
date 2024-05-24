@@ -29,4 +29,4 @@ https://doc.openluat.com/wiki/52?wiki_page_id=5128
 ![avatar](/images/miniprogram.jpg)
 
 
-## 联系微信： napshen  （暗号：芝麻开门）
+## 合作联系微信： napshen  （暗号：芝麻开门）
