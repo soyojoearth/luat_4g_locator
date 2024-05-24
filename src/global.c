@@ -10,9 +10,12 @@
 
 
 //这里填写平台分配给您的 产测账号、密码
-char* facId = "585659";
-char* facSecret = "abc123abc";
+// char* facId = "585659";
+// char* facSecret = "abc123abc";
+char* facId = "";
+char* facSecret = "";
 //一定要有产测账号，才能自动获取到MQTT授权码，请向我们索取！微信: napshen （申工）
+//上面写在里面的产测账号的密码已经改掉了（之前不小心上次到了github），请另外向我们索取
 
 
 //这里填写模组类型
