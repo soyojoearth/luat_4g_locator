@@ -4,7 +4,7 @@
 请按照合宙C-SDK文档进行配置环境：
 https://doc.openluat.com/wiki/52?wiki_page_id=5128
 
-然后，把这套代码放到luatos-soc-2024\project目录下，即可进行修改、编译。
+然后，把这套代码放到 luatos-soc-2024\project 目录下，即可进行修改、编译。
 
 开发板，请购买Air780EPV，99元那个。
 
