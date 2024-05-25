@@ -28,4 +28,8 @@ https://doc.openluat.com/wiki/52?wiki_page_id=5128
 ![avatar](images/miniprogram.jpg)
 
 
-## 合作与技术联系微信： napshen  （暗号：芝麻开门）
+## 收费项目费用
+### 1、设备接入平台费
+### 2、如果需要小程序改名字、改LOGO，额外收费
+
+### 技术与商务联系方式：微信 napshen  （暗号：芝麻开门）
