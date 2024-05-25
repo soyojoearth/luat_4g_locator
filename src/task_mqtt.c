@@ -48,6 +48,8 @@ bool pair_upload = false;
 int32_t pairStatus = 1;//10 pairStatus 0：非配网状态；1：等待配网状态   ，一般需要用户 长按3秒 按钮，才能进入等待配网状态（闪灯），默认非配网状态(位了安全)
 
 int8_t check_and_upload_once = 1;//立即准备后续处理并上报数据
+bool upload_all_once = true;//是否全部数据上传一次，为了节省流量，仅在必要的时候上传一次全部数据，比如刚联网、下发指令重新上传等
+
 
 void receiveMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl, uint8_t * message, uint16_t len);
 void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl);
@@ -319,6 +321,7 @@ void receiveMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl, uint8_t * data, uint16_t l
 
 			//收到所有数据，并且处理完毕后，重新上报一下数据
             check_and_upload_once = 1;
+			upload_all_once = true;
 		}
 		
 	}
@@ -398,8 +401,6 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 
 	//***********************************上面这1条表示设备是否允许绑定************************//
 
-
-
 	//100	警报开关	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报
 	mqtt_upload_buffer[index++] = 100 & 0xff;
 	mqtt_upload_buffer[index++] = 0x05;//bitmap
@@ -430,33 +431,35 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 	mqtt_upload_buffer[index++] = (dpValue_battery >> 8) & 0xff;
 	mqtt_upload_buffer[index++] = (dpValue_battery >> 0) & 0xff;
 
-	//103	圆形地理围栏（GCJ02）	Raw	12个字节一组（每组一个圆），可多组（多个圆）。每组数据：纬度(int32)+经度(int32)+半径（int32），经纬度都放大10^7倍，半径单位是厘米。
-	//104	圆形地理围栏（WGS84）	Raw	12个字节一组（每组一个圆），可多组（多个圆）。每组数据：纬度(int32)+经度(int32)+半径（int32），经纬度都放大10^7倍，半径单位是厘米。
-	if(dpValue_data_geofencing_length > 0){//有围栏数据的时候，上报围栏
-		if(dpValue_gpsType == 0){
-			mqtt_upload_buffer[index++] = 104 & 0xff;//圆形地理围栏（WGS84）
+	if(upload_all_once){
+		//103	圆形地理围栏（GCJ02）	Raw	12个字节一组（每组一个圆），可多组（多个圆）。每组数据：纬度(int32)+经度(int32)+半径（int32），经纬度都放大10^7倍，半径单位是厘米。
+		//104	圆形地理围栏（WGS84）	Raw	12个字节一组（每组一个圆），可多组（多个圆）。每组数据：纬度(int32)+经度(int32)+半径（int32），经纬度都放大10^7倍，半径单位是厘米。
+		if(dpValue_data_geofencing_length > 0){//有围栏数据的时候，上报围栏
+			if(dpValue_gpsType == 0){
+				mqtt_upload_buffer[index++] = 104 & 0xff;//圆形地理围栏（WGS84）
+			}
+			else if(dpValue_gpsType == 1){
+				mqtt_upload_buffer[index++] = 103 & 0xff;//圆形地理围栏（GCJ02）
+			}
+			mqtt_upload_buffer[index++] = 0x00;//raw
+			mqtt_upload_buffer[index++] = (dpValue_data_geofencing_length >> 8) & 0xff;
+			mqtt_upload_buffer[index++] = dpValue_data_geofencing_length & 0xff;
+			for (size_t i = 0; i < dpValue_data_geofencing_length; i++)
+			{
+				mqtt_upload_buffer[index++] = dpValue_data_geofencing[i];
+			}
 		}
-		else if(dpValue_gpsType == 1){
-			mqtt_upload_buffer[index++] = 103 & 0xff;//圆形地理围栏（GCJ02）
+		else{//没有围栏的时候，上报null
+			if(dpValue_gpsType == 0){
+				mqtt_upload_buffer[index++] = 104 & 0xff;//圆形地理围栏（WGS84）
+			}
+			else if(dpValue_gpsType == 1){
+				mqtt_upload_buffer[index++] = 103 & 0xff;//圆形地理围栏（GCJ02）
+			}
+			mqtt_upload_buffer[index++] = 0x00;//raw
+			mqtt_upload_buffer[index++] = 0x00;
+			mqtt_upload_buffer[index++] = 0x00;//当长度等于0时，数据就是null
 		}
-		mqtt_upload_buffer[index++] = 0x00;//raw
-		mqtt_upload_buffer[index++] = (dpValue_data_geofencing_length >> 8) & 0xff;
-		mqtt_upload_buffer[index++] = dpValue_data_geofencing_length & 0xff;
-		for (size_t i = 0; i < dpValue_data_geofencing_length; i++)
-		{
-			mqtt_upload_buffer[index++] = dpValue_data_geofencing[i];
-		}
-	}
-	else{//没有围栏的时候，上报null
-		if(dpValue_gpsType == 0){
-			mqtt_upload_buffer[index++] = 104 & 0xff;//圆形地理围栏（WGS84）
-		}
-		else if(dpValue_gpsType == 1){
-			mqtt_upload_buffer[index++] = 103 & 0xff;//圆形地理围栏（GCJ02）
-		}
-		mqtt_upload_buffer[index++] = 0x00;//raw
-		mqtt_upload_buffer[index++] = 0x00;
-		mqtt_upload_buffer[index++] = 0x00;//当长度等于0时，数据就是null
 	}
 	
 	//106	设备坐标格式	enum	0：WGS84 1：GCJ02
@@ -509,56 +512,59 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 	mqtt_upload_buffer[index++] = 0x01;
 	mqtt_upload_buffer[index++] = dpValue_hasSatellite ? 0x01 : 0x00;
 
-	//109	设备的能力（决定了app显示的内容）	bitmap	按bit位从低到高：智能定位|gps|北斗|LBS|WiFi|SOS电话|SOS实时语音|语音分段对讲|语音分段监听|语音实时监听
-	mqtt_upload_buffer[index++] = 109 & 0xff;
-	mqtt_upload_buffer[index++] = 0x05;//bitmap
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 0) & 0xff;
+	if(upload_all_once){
+		//109	设备的能力（决定了app显示的内容）	bitmap	按bit位从低到高：智能定位|gps|北斗|LBS|WiFi|SOS电话|SOS实时语音|语音分段对讲|语音分段监听|语音实时监听
+		mqtt_upload_buffer[index++] = 109 & 0xff;
+		mqtt_upload_buffer[index++] = 0x05;//bitmap
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_functionFlag >> 0) & 0xff;
+	}
 
+	if(upload_all_once){
+		//112	温度上限	value	（产品需要才用）放大100倍
+		mqtt_upload_buffer[index++] = 112 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 0) & 0xff;
 
-	//112	温度上限	value	（产品需要才用）放大100倍
-	mqtt_upload_buffer[index++] = 112 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_tempMaxLimit >> 0) & 0xff;
+		//113	温度下限	value	（产品需要才用）放大100倍
+		mqtt_upload_buffer[index++] = 113 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 0) & 0xff;
 
-	//113	温度下限	value	（产品需要才用）放大100倍
-	mqtt_upload_buffer[index++] = 113 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_tempMinLimit >> 0) & 0xff;
+		//114	湿度上限	value	（产品需要才用）放大100倍
+		mqtt_upload_buffer[index++] = 114 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 0) & 0xff;
 
-	//114	湿度上限	value	（产品需要才用）放大100倍
-	mqtt_upload_buffer[index++] = 114 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_humMaxLimit >> 0) & 0xff;
-
-	//115	湿度下限	value	（产品需要才用）放大100倍
-	mqtt_upload_buffer[index++] = 115 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 0) & 0xff;
+		//115	湿度下限	value	（产品需要才用）放大100倍
+		mqtt_upload_buffer[index++] = 115 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_humMinLimit >> 0) & 0xff;
+	}
 
 	
 	//116	温度	value	放大100倍，单位摄氏度 int32
@@ -592,96 +598,103 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 	mqtt_upload_buffer[index++] = (dpValue_currentPascal >> 0) & 0xff;
 
 
-	//111	气压下限	value	（产品需要才用）不放大。int32。单位：帕斯卡
-	mqtt_upload_buffer[index++] = 111 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 0) & 0xff;
+	if(upload_all_once){
+		//111	气压下限	value	（产品需要才用）不放大。int32。单位：帕斯卡
+		mqtt_upload_buffer[index++] = 111 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMinLimit >> 0) & 0xff;
 
 
-	//110	气压上限	value	（产品需要才用）不放大。int32。单位：帕斯卡
-	mqtt_upload_buffer[index++] = 110 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 0) & 0xff;
+		//110	气压上限	value	（产品需要才用）不放大。int32。单位：帕斯卡
+		mqtt_upload_buffer[index++] = 110 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_PascalMaxLimit >> 0) & 0xff;
+	}
+
+	if(upload_all_once){
+		//120	远程开关机	bool	关机就是最低功耗联网状态，支持实时远程开机
+		mqtt_upload_buffer[index++] = 120 & 0xff;
+		mqtt_upload_buffer[index++] = 0x01;//bool
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x01;
+		mqtt_upload_buffer[index++] = dpValue_power_on ? 0x01 : 0x00;
 
 
-	//120	远程开关机	bool	关机就是最低功耗联网状态，支持实时远程开机
-	mqtt_upload_buffer[index++] = 120 & 0xff;
-	mqtt_upload_buffer[index++] = 0x01;//bool
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x01;
-	mqtt_upload_buffer[index++] = dpValue_power_on ? 0x01 : 0x00;
-
-
-	//121	定位频率	value	0：低功耗待机(不主动定位上报，可随时接收指令立即定位一下上报)；大于0：定位间隔时间（单位：秒）
-	mqtt_upload_buffer[index++] = 121 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_frequency >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_frequency >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_frequency >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_frequency >> 0) & 0xff;
-
-
-	//130	ICCID	string	
-
-	//131	sim卡号	string	
-
-	//132	sim手机号	string	
-
-	//133	设备模组类型	string	可以是方案型号或模组型号
-	mqtt_upload_buffer[index++] = 133 & 0xff;
-	mqtt_upload_buffer[index++] = 0x03;
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = strlen(dpValue_model_type) & 0xff;
-
-	for (size_t i = 0; i < strlen(dpValue_model_type); i++)
-	{
-		mqtt_upload_buffer[index++] = dpValue_model_type[i];
+		//121	定位频率	value	0：低功耗待机(不主动定位上报，可随时接收指令立即定位一下上报)；大于0：定位间隔时间（单位：秒）
+		mqtt_upload_buffer[index++] = 121 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_frequency >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_frequency >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_frequency >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_frequency >> 0) & 0xff;
 	}
 
 
-	//134	蜂窝信号量	value	int32，例如： -82
-	mqtt_upload_buffer[index++] = 134 & 0xff;
-	mqtt_upload_buffer[index++] = 0x04;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 0) & 0xff;
+	if(upload_all_once){
 
-	//135	蜂窝类型	enum	2：GPRS ；3：3G；4：4G
-	mqtt_upload_buffer[index++] = 135 & 0xff;
-	mqtt_upload_buffer[index++] = 0x04;//enum
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_mobileType >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_mobileType >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_mobileType >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_mobileType >> 0) & 0xff;
+		//130	ICCID	string	
 
-	//136	IMEI号码	string	IMEI号码
-	ret = luat_mobile_get_imei(0, IMEI_STR, sizeof(IMEI_STR)-1);
+		//131	sim卡号	string	
 
-	mqtt_upload_buffer[index++] = 136 & 0xff;
-	mqtt_upload_buffer[index++] = 0x03;
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = strlen(IMEI_STR) & 0xff;
+		//132	sim手机号	string	
 
-	for (size_t i = 0; i < strlen(IMEI_STR); i++)
-	{
-		mqtt_upload_buffer[index++] = IMEI_STR[i];
+		//133	设备模组类型	string	可以是方案型号或模组型号
+		mqtt_upload_buffer[index++] = 133 & 0xff;
+		mqtt_upload_buffer[index++] = 0x03;
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = strlen(dpValue_model_type) & 0xff;
+
+		for (size_t i = 0; i < strlen(dpValue_model_type); i++)
+		{
+			mqtt_upload_buffer[index++] = dpValue_model_type[i];
+		}
+
+
+		//134	蜂窝信号量	value	int32，例如： -82
+		mqtt_upload_buffer[index++] = 134 & 0xff;
+		mqtt_upload_buffer[index++] = 0x04;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_mobileSignal >> 0) & 0xff;
+
+		//135	蜂窝类型	enum	2：GPRS ；3：3G；4：4G
+		mqtt_upload_buffer[index++] = 135 & 0xff;
+		mqtt_upload_buffer[index++] = 0x04;//enum
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_mobileType >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_mobileType >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_mobileType >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_mobileType >> 0) & 0xff;
+
+		//136	IMEI号码	string	IMEI号码
+		ret = luat_mobile_get_imei(0, IMEI_STR, sizeof(IMEI_STR)-1);
+
+		mqtt_upload_buffer[index++] = 136 & 0xff;
+		mqtt_upload_buffer[index++] = 0x03;
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = strlen(IMEI_STR) & 0xff;
+
+		for (size_t i = 0; i < strlen(IMEI_STR); i++)
+		{
+			mqtt_upload_buffer[index++] = IMEI_STR[i];
+		}
+
 	}
 
 
@@ -705,27 +718,29 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 	mqtt_upload_buffer[index++] = (dpValue_speed >> 8) & 0xff;
 	mqtt_upload_buffer[index++] = (dpValue_speed >> 0) & 0xff;
 
-	//142	速度限制	value	米，int32，超速后需警报（负数无限制）
-	mqtt_upload_buffer[index++] = 142 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 0) & 0xff;
+	if(upload_all_once){
+		//142	速度限制	value	米，int32，超速后需警报（负数无限制）
+		mqtt_upload_buffer[index++] = 142 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_speedLimit >> 0) & 0xff;
+	}
 
-	//200	固件版本	value	int32，自然数 正数
-	mqtt_upload_buffer[index++] = 200 & 0xff;
-	mqtt_upload_buffer[index++] = 0x02;//value
-	mqtt_upload_buffer[index++] = 0x00;
-	mqtt_upload_buffer[index++] = 0x04;
-	mqtt_upload_buffer[index++] = (dpValue_version >> 24) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_version >> 16) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_version >> 8) & 0xff;
-	mqtt_upload_buffer[index++] = (dpValue_version >> 0) & 0xff;
-
-
+	if(upload_all_once){
+		//200	固件版本	value	int32，自然数 正数
+		mqtt_upload_buffer[index++] = 200 & 0xff;
+		mqtt_upload_buffer[index++] = 0x02;//value
+		mqtt_upload_buffer[index++] = 0x00;
+		mqtt_upload_buffer[index++] = 0x04;
+		mqtt_upload_buffer[index++] = (dpValue_version >> 24) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_version >> 16) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_version >> 8) & 0xff;
+		mqtt_upload_buffer[index++] = (dpValue_version >> 0) & 0xff;
+	}
 
 	//payload length
 	uint16_t payload_length = index-5;
@@ -748,6 +763,8 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 	mqtt_publish_with_qos(&(luat_mqtt_ctrl->broker), mqtt_pub_topic, mqtt_upload_buffer, length_send, 0, MQTT_DEMO_PUB_QOS, &message_id);
 
 	LUAT_DEBUG_PRINT("done");
+
+	upload_all_once = false;//改回去，下次当true时，才会全部重新上传，一般情况下只上传最少必要数据
 
 }
 
