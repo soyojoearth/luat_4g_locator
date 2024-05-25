@@ -198,24 +198,28 @@ void receiveMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl, uint8_t * data, uint16_t l
 				item_len = ((data[index_payload + 2] & 0x00ff) << 8) | (data[index_payload + 3] & 0x00ff);
 				index_value = index_payload + 4;
 
-				//设备绑定请求
-				if(item_dpid == 3){//identifier
-					identifier = (char*)malloc(item_len+1);
-					for (size_t i = 0; i < item_len; i++)
-					{
-						identifier[i] = data[index_value+i];
+				//pairStatus 0：非配网状态；1：等待配网状态   ，一般需要用户 长按3秒 按钮，才能进入等待配网状态（闪灯），默认非配网状态(位了安全)
+				//当pairStatus不等于1时，忽略配网绑定请求
+				if(pairStatus == 1){
+					//设备绑定请求
+					if(item_dpid == 3){//identifier
+						identifier = (char*)malloc(item_len+1);
+						for (size_t i = 0; i < item_len; i++)
+						{
+							identifier[i] = data[index_value+i];
+						}
+						identifier[item_len] = 0x00;			
+						pair_upload = true;
 					}
-					identifier[item_len] = 0x00;			
-					pair_upload = true;
-				}
-				else if(item_dpid == 4){//owner
-					owner = (char*)malloc(item_len+1);
-					for (size_t i = 0; i < item_len; i++)
-					{
-						owner[i] = data[index_value+i];
+					else if(item_dpid == 4){//owner
+						owner = (char*)malloc(item_len+1);
+						for (size_t i = 0; i < item_len; i++)
+						{
+							owner[i] = data[index_value+i];
+						}
+						owner[item_len] = 0x00;		
+						pair_upload = true;
 					}
-					owner[item_len] = 0x00;		
-					pair_upload = true;
 				}
 				
 				//普通数据
