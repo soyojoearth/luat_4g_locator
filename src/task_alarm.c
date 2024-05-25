@@ -126,43 +126,47 @@ void checkAll(){
 
     int8_t res = 0;
 
-    //检查是否围栏越界
-    res = checkIsOutGeofencing();
+    if(lbs_lat != 255 && lbs_lon != 255){
+        
+        //检查是否围栏越界
+        res = checkIsOutGeofencing();
 
-    if (res)
-    {
-        // LUAT_DEBUG_PRINT("checkIsOutGeofencing:YES\n");
-        if (!isOutGeofencing)//是不是刚越界
+        if (res)
         {
-            //越界了
-            LUAT_DEBUG_PRINT("OutGeofencing First\n");
-            isOutGeofencing = true;
-            if(dpValue_alarmFlag & (1 << 3)){//通知开关是否打开
-                LUAT_DEBUG_PRINT("Alarm 3\n");
-                dpValue_alarmStatus |= (1 << 3);//出围栏置1
-            }
-            if(dpValue_alarmFlag & (1 << 2)){//通知开关是否打开
-                LUAT_DEBUG_PRINT("Alarm 2\n");
-                dpValue_alarmStatus &= ~(1 << 2);//进围栏置0
+            // LUAT_DEBUG_PRINT("checkIsOutGeofencing:YES\n");
+            if (!isOutGeofencing)//是不是刚越界
+            {
+                //越界了
+                LUAT_DEBUG_PRINT("OutGeofencing First\n");
+                isOutGeofencing = true;
+                if(dpValue_alarmFlag & (1 << 3)){//通知开关是否打开
+                    LUAT_DEBUG_PRINT("Alarm 3\n");
+                    dpValue_alarmStatus |= (1 << 3);//出围栏置1
+                }
+                if(dpValue_alarmFlag & (1 << 2)){//通知开关是否打开
+                    LUAT_DEBUG_PRINT("Alarm 2\n");
+                    dpValue_alarmStatus &= ~(1 << 2);//进围栏置0
+                }
             }
         }
-    }
-    else{
-        // LUAT_DEBUG_PRINT("checkIsOutGeofencing:NO\n");
-        if (isOutGeofencing)//是不是刚回来
-        {
-            //回界了
-            LUAT_DEBUG_PRINT("BackGeofencing First\n");
-            isOutGeofencing = false;
-            if(dpValue_alarmFlag & (1 << 3)){//通知开关是否打开
-                LUAT_DEBUG_PRINT("Alarm 3\n");
-                dpValue_alarmStatus &= ~(1 << 3);//出围栏置0
-            }
-            if(dpValue_alarmFlag & (1 << 2)){//通知开关是否打开
-                LUAT_DEBUG_PRINT("Alarm 2\n");
-                dpValue_alarmStatus |= (1 << 2);//进围栏置1
+        else{
+            // LUAT_DEBUG_PRINT("checkIsOutGeofencing:NO\n");
+            if (isOutGeofencing)//是不是刚回来
+            {
+                //回界了
+                LUAT_DEBUG_PRINT("BackGeofencing First\n");
+                isOutGeofencing = false;
+                if(dpValue_alarmFlag & (1 << 3)){//通知开关是否打开
+                    LUAT_DEBUG_PRINT("Alarm 3\n");
+                    dpValue_alarmStatus &= ~(1 << 3);//出围栏置0
+                }
+                if(dpValue_alarmFlag & (1 << 2)){//通知开关是否打开
+                    LUAT_DEBUG_PRINT("Alarm 2\n");
+                    dpValue_alarmStatus |= (1 << 2);//进围栏置1
+                }
             }
         }
+
     }
 
     //检查温湿度
