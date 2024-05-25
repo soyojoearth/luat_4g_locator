@@ -333,6 +333,7 @@ void lbsloc_request_task(void *param)
                                         lbs_lat = atof(latitude);
                                         lbs_lon = atof(longitude);
                                         LUAT_DEBUG_PRINT("lat: %.7f, lon: %.7f",lbs_lat,lbs_lon);
+                                        check_and_upload_once = 1;
                                     }
                                     else
                                     {

@@ -11,6 +11,9 @@ extern char* clientType;
 
 extern char* product_id;
 
+//flag
+extern int8_t check_and_upload_once;//立即准备后续处理并上报数据
+extern bool upload_all_once;//是否全部数据上传一次，为了节省流量，仅在必要的时候上传一次全部数据，比如刚联网、下发指令重新上传等
 
 
 

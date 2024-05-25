@@ -17,6 +17,11 @@ char* facSecret = "abc123abc";
 //一定要有产测账号，才能自动获取到MQTT授权码，请向我们索取！微信: napshen （申工）
 //上面写在里面的产测账号的密码已经改掉了（之前不小心上次到了github），请另外向我们索取
 
+//flag
+int8_t check_and_upload_once = 1;//立即准备后续处理并上报数据
+bool upload_all_once = true;//是否全部数据上传一次，为了节省流量，仅在必要的时候上传一次全部数据，比如刚联网、下发指令重新上传等
+
+
 
 //这里填写模组类型
 char* clientType = "Air780EP";

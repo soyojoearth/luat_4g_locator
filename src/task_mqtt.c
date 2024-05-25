@@ -47,8 +47,6 @@ bool pair_upload = false;
 
 int32_t pairStatus = 1;//10 pairStatus 0：非配网状态；1：等待配网状态   ，一般需要用户 长按3秒 按钮，才能进入等待配网状态（闪灯），默认非配网状态(位了安全)
 
-int8_t check_and_upload_once = 1;//立即准备后续处理并上报数据
-bool upload_all_once = true;//是否全部数据上传一次，为了节省流量，仅在必要的时候上传一次全部数据，比如刚联网、下发指令重新上传等
 
 
 void receiveMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl, uint8_t * message, uint16_t len);
