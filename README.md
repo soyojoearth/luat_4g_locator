@@ -10,6 +10,8 @@ https://doc.openluat.com/wiki/52?wiki_page_id=5128
 
 购买连接：https://item.taobao.com/item.htm?_u=o209n8ib8779df&id=764253232987&spm=a1z09.2.0.0.2e032e8dWU73ii
 
+![avatar](images/air780epv.jpg)
+
 ### 本套代码已经把网络通信交互部分基本完成，外设数据通信还需靠你们自己去做，比如外挂gps模块、别的传感器等。低功耗管理、电源、电池、充电管理、SOS呼叫、陀螺仪等等其它功能，也需要你们自己做上去。
 
 你们只要将本套代码稍稍改一下就可以轻松做出一款4G定位器产品，然后将PCBA量产卖给你们的客户。
