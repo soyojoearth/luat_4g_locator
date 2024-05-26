@@ -774,6 +774,8 @@ void luat_mqtt_task(void *param)
 {
 	int ret = -1;
 
+	uint32_t power_on_seconds = 0;//开机了多长时间
+
 	//等待HTTP任务从平台获取MQTT账号
 	while (strlen(mqttUser) == 0 || strlen(mqttPwd) == 0 || strlen(mqttDeviceId) == 0){
 		LUAT_DEBUG_PRINT("waiting for mqtt account init...");
@@ -862,5 +864,13 @@ if (MQTT_DEMO_AUTOCON == 1)
             }
 		}
 		luat_rtos_task_sleep(100);
+
+		power_on_seconds++;
+		//开机120秒后禁止被绑定
+		if(power_on_seconds == 1200){
+			pairStatus = 0;
+			check_and_upload_once = 1;
+		}
+
 	}
 }
