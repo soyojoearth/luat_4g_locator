@@ -384,6 +384,8 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 			mqtt_upload_buffer[index++] = owner[i];
 		}
 
+		pairStatus = 0;//及时关闭可绑定状态
+
 	}
 
 	pair_upload = false;//发一次就够了。每次绑定请求的时候，发一次。
