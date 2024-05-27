@@ -35,7 +35,10 @@ char* dpValue_model_type = "air780epv";
 int32_t dpValue_alarmFlag = 0;//警报开关	
 int32_t dpValue_alarmStatus = 0;//警报通知	
 bool dpValue_power_on = true;//远程开关机
-int32_t dpValue_frequency = 3600;//定位频率
+
+//121	定位频率	value	0：低功耗待机(不主动定位上报，可随时接收指令立即定位一下上报)；大于0：定位间隔时间（单位：秒）
+int32_t dpValue_frequency = 180;//定位频率
+
 int32_t dpValue_mobileSignal = -80;//蜂窝信号
 //102	电量	value	int32类型：0-100之间是当前电量，255表示插电无电池，当前电量加150表示正在充电（150-250之间）
 int32_t dpValue_battery = 98;//模拟数据

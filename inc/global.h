@@ -21,7 +21,10 @@ extern bool upload_all_once;//是否全部数据上传一次，为了节省流�
 extern int32_t dpValue_alarmFlag;//警报开关	
 extern int32_t dpValue_alarmStatus;//警报通知	
 extern bool dpValue_power_on;//远程开关机
+
+//121	定位频率	value	0：低功耗待机(不主动定位上报，可随时接收指令立即定位一下上报)；大于0：定位间隔时间（单位：秒）
 extern int32_t dpValue_frequency;//定位频率
+
 extern int32_t dpValue_mobileSignal;//蜂窝信号
 //102	电量	value	int32类型：0-100之间是当前电量，255表示插电无电池，当前电量加150表示正在充电（150-250之间）
 extern int32_t dpValue_battery;//模拟数据

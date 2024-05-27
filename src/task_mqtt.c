@@ -776,7 +776,11 @@ void luat_mqtt_task(void *param)
 {
 	int ret = -1;
 
-	uint32_t power_on_seconds = 0;//开机了多长时间
+	uint32_t power_on_seconds = 0;//开机了多长时间（单位：100ms）
+
+	uint32_t upload_seconds = 0;//距离上一次上传过去了多少时间（单位：100ms）
+
+	uint32_t upload_interval = 1200;//每次至少上报间隔（秒）太长了会显示离线，太短了耗电
 
 	//等待HTTP任务从平台获取MQTT账号
 	while (strlen(mqttUser) == 0 || strlen(mqttPwd) == 0 || strlen(mqttDeviceId) == 0){
@@ -858,20 +862,35 @@ if (MQTT_DEMO_AUTOCON == 1)
 	LUAT_DEBUG_PRINT("wait mqtt_state ...");
 
 	while(1){
-		if (luat_mqtt_state_get(luat_mqtt_ctrl) == MQTT_STATE_READY){
-            if(check_and_upload_once == 1){
+
+		power_on_seconds++;
+		upload_seconds++;
+
+		//至少每upload_interval*10个100毫秒上报一次，或者当check_and_upload_once==1时立即上报
+		if(check_and_upload_once == 1 || (upload_seconds >= (upload_interval*10))){//（单位：100ms）
+			if (luat_mqtt_state_get(luat_mqtt_ctrl) == MQTT_STATE_READY){
                 check_and_upload_once = 0;
                 checkAll();
 			    uploadMessage(luat_mqtt_ctrl);
+				upload_seconds = 0;//归零重新计算时间
             }
 		}
-		luat_rtos_task_sleep(100);
 
-		power_on_seconds++;
+		luat_rtos_task_sleep(100);
+		
 		//开机120秒后禁止被绑定
 		if(power_on_seconds == 1200){
 			pairStatus = 0;
 			check_and_upload_once = 1;
+		}
+
+		//及时同步最小上报间隔
+		if(dpValue_frequency < upload_interval){
+			upload_interval = dpValue_frequency;
+		}
+		else{
+			upload_interval = 1200;
+			//每次至少上报间隔（秒）太长了会显示离线
 		}
 
 	}

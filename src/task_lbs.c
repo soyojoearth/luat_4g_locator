@@ -181,8 +181,10 @@ static int32_t luat_test_socket_callback(void *pdata, void *param)
 }
 void lbsloc_request_task(void *param)
 {
+
     while (1)
     {
+
         while (!g_link_status)
         {
             luat_rtos_task_sleep(1000);
@@ -381,7 +383,30 @@ void lbsloc_request_task(void *param)
 
         }
 
-        luat_rtos_task_sleep(60000);
+        //如果不是GPS待机模式，就按照dpValue_frequency优先
+        if(dpValue_frequency > 0){
+            //GPS按dpValue_frequency间隔定位模式
+            if(dpValue_frequency > 60 && dpValue_data_geofencing_length > 0){
+                //只要设置了电子围栏，就至少需要每60秒定位一次，毕竟要及时检测有么有离开电子围栏呀
+                luat_rtos_task_sleep(60000);
+            }
+            else{
+                luat_rtos_task_sleep(dpValue_frequency*1000);
+            }
+        }
+        else
+        {
+            //GPS待机模式
+            if(dpValue_data_geofencing_length > 0){
+                //只要设置了电子围栏，就至少需要每60秒定位一次，毕竟要及时检测有么有离开电子围栏呀
+                luat_rtos_task_sleep(60000);
+            }
+            else{
+                //超低功耗模式1天定位一次吧
+                luat_rtos_task_sleep(3600*1000*24);
+            }
+        }   
+
     }
 }
 
