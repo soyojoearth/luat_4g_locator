@@ -385,29 +385,28 @@ void lbsloc_request_task(void *param)
 
         }
 
-        if(dpValue_frequency <= 0){
-            //GPS待机模式
-            count_down_time_max = 86400;
-        }
-        else{
-            //不是GPS待机模式
-            count_down_time_max = dpValue_frequency;
-        }
-
-        if(dpValue_data_geofencing_length > 0){
-            //不管是不是待机模式，只要设置了电子围栏，就至少需要每60秒定位一次，毕竟要及时检测有么有离开电子围栏呀
-            if(count_down_time_max > 60){
-                count_down_time_max = 60;
-            }
-        }
-
+        //倒计时，计时器
         count_down_time = 0;
         while(count_down_time < count_down_time_max){
+            //根据可能接收到而更新的数据，每秒更新count_down_time_max，使得远程随时设置随时生效、及时跳出计时器循环
+            if(dpValue_frequency <= 0){
+                //GPS待机模式
+                count_down_time_max = 86400;
+            }
+            else{
+                //不是GPS待机模式
+                count_down_time_max = dpValue_frequency;
+            }
+
+            if(dpValue_data_geofencing_length > 0){
+                //不管是不是待机模式，只要设置了电子围栏，就至少需要每60秒定位一次，毕竟要及时检测有么有离开电子围栏呀
+                if(count_down_time_max > 60){
+                    count_down_time_max = 60;
+                }
+            }
+            //计时器累加
             count_down_time++;
             luat_rtos_task_sleep(1000);
-            if(count_down_time > dpValue_frequency && dpValue_frequency > 0){//使得远程随时设置，随时生效
-                break; 
-            }
         }
 
     }
