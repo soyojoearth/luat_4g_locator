@@ -230,6 +230,13 @@ void receiveMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl, uint8_t * data, uint16_t l
 					((data[index_value+2] & 0xffffffff) << 8) | 
 					((data[index_value+3] & 0xffffffff) << 0);
 				}
+				else if(item_dpid == 158){//启用短信告警
+					//bitmap 
+					dpValue_alarmFlagSms = ((data[index_value] & 0xffffffff) << 24) | 
+					((data[index_value+1] & 0xffffffff) << 16) | 
+					((data[index_value+2] & 0xffffffff) << 8) | 
+					((data[index_value+3] & 0xffffffff) << 0);
+				}
 				else if (item_dpid == 104)//电子围栏数据
 				{
 					dpValue_data_geofencing_length = item_len;
@@ -405,7 +412,17 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 
 	//***********************************上面这1条表示设备是否允许绑定************************//
 
-	//100	警报开关	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报
+	//158	启用短信告警	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报|移动侦测
+	mqtt_upload_buffer[index++] = 158 & 0xff;
+	mqtt_upload_buffer[index++] = 0x05;//bitmap
+	mqtt_upload_buffer[index++] = 0x00;
+	mqtt_upload_buffer[index++] = 0x04;
+	mqtt_upload_buffer[index++] = (dpValue_alarmFlagSms >> 24) & 0xff;
+	mqtt_upload_buffer[index++] = (dpValue_alarmFlagSms >> 16) & 0xff;
+	mqtt_upload_buffer[index++] = (dpValue_alarmFlagSms >> 8) & 0xff;
+	mqtt_upload_buffer[index++] = (dpValue_alarmFlagSms >> 0) & 0xff;
+
+	//100	警报开关	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报|移动侦测
 	mqtt_upload_buffer[index++] = 100 & 0xff;
 	mqtt_upload_buffer[index++] = 0x05;//bitmap
 	mqtt_upload_buffer[index++] = 0x00;
@@ -415,7 +432,7 @@ void uploadMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl){
 	mqtt_upload_buffer[index++] = (dpValue_alarmFlag >> 8) & 0xff;
 	mqtt_upload_buffer[index++] = (dpValue_alarmFlag >> 0) & 0xff;
 
-	//101	警报通知	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报
+	//101	警报通知	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报|移动侦测
 	mqtt_upload_buffer[index++] = 101 & 0xff;
 	mqtt_upload_buffer[index++] = 0x05;//bitmap
 	mqtt_upload_buffer[index++] = 0x00;

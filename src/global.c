@@ -32,8 +32,15 @@ char* product_id = "iR3kDi9B8Qd";
 //133	设备模组类型	string	可以是方案型号或模组型号
 char* dpValue_model_type = "air780epv";
 
-int32_t dpValue_alarmFlag = 0;//警报开关	
+//158	启用短信告警	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报|移动侦测
+int32_t dpValue_alarmFlagSms = 0;//启用短信告警
+
+//100	警报开关	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报|移动侦测
+int32_t dpValue_alarmFlag = 0;//警报开关
+
+//101	警报通知	bitmap	按bit位低到高：故障警报|低电量警报|进围栏警报|出围栏警报|震动警报|超速警报|防拆警报|落水警报|温度警报|湿度警报|气压警报|手动警报|移动侦测
 int32_t dpValue_alarmStatus = 0;//警报通知	
+
 bool dpValue_power_on = true;//远程开关机
 
 //121	定位频率	value	0：低功耗待机(不主动定位上报，可随时接收指令立即定位一下上报)；大于0：定位间隔时间（单位：秒）
