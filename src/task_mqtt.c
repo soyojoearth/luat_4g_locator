@@ -39,9 +39,9 @@ char mqtt_upload_buffer[1024];//看需要设定大小，其中电子围栏就需
 
 char IMEI_STR[16] = {0};
 
-char* identifier = "lso24901";
+char* identifier = "";//从MQTT接收到 dpId 3，动态分配内存
 
-char* owner = "6ml3wvumu1oktzkn";
+char* owner = "";//从MQTT接收到 dpId 4，动态分配内存
 
 bool pair_upload = false;
 
@@ -199,6 +199,7 @@ void receiveMessage(luat_mqtt_ctrl_t *luat_mqtt_ctrl, uint8_t * data, uint16_t l
 				index_value = index_payload + 4;
 
 				//pairStatus 0：非配网状态；1：等待配网状态   ，一般需要用户 长按3秒 按钮，才能进入等待配网状态（闪灯），默认非配网状态(位了安全)
+				//但我们这里用另一种方式：开机或reset后大约10秒到2分钟内，pairStatus是1，超过2分钟后自动变成0，这样也还比较安全
 				//当pairStatus不等于1时，忽略配网绑定请求
 				if(pairStatus == 1){
 					//设备绑定请求

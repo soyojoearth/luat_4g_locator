@@ -33,13 +33,11 @@ const char tele[TELE_NUM][3] = {"03", "05", "11", "12"};                 // 中�
 
 uint8_t g_link_status = 0;//蜂窝网络是否注册成功
 
-double lbs_lat = 255;
+
+double lbs_lat = 255;//最近一次lbs定位
 double lbs_lon = 255;
 double lbs_accuracy = 300;//米
 
-//LBS end
-
-//LBS 开始
 
 static int8_t search_mnc(char *mnc)
 {
@@ -334,8 +332,16 @@ void lbsloc_request_task(void *param)
                                     if (location_service_parse_response(&locationServiceResponse, latitude, longitude, &year, &month, &day, &hour, &minute, &second))
                                     {
                                         LUAT_DEBUG_PRINT("latitude: %s, longitude: %s, year: %d, month: %d, day: %d, hour: %d, minute: %d, second: %d", latitude, longitude, year, month, day, hour, minute, second);
+                                        
                                         lbs_lat = atof(latitude);
                                         lbs_lon = atof(longitude);
+
+                                        lat_last = lat_current;
+                                        lon_last = lon_current;
+
+                                        lat_current = lbs_lat;
+                                        lon_current = lbs_lon;
+                                        
                                         LUAT_DEBUG_PRINT("lat: %.7f, lon: %.7f",lbs_lat,lbs_lon);
                                         check_and_upload_once = 1;
                                     }
@@ -412,4 +418,3 @@ void lbsloc_request_task(void *param)
     }
 }
 
-//LBS结束

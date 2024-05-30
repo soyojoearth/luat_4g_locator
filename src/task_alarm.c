@@ -13,35 +13,9 @@
 
 #include "task_lbs.h"
 
-#define PI                      3.1415926
-#define EARTH_RADIUS            6378.137        //地球近似半径
+
 
 bool isOutGeofencing = false;//默认当前没有越界
-
-double radian(double d);
-double get_distance(double lat1, double lng1, double lat2, double lng2);
-
-// 求弧度
-double radian(double d)
-{
-    return d * PI / 180.0;   //角度1˚ = π / 180
-}
-
-//计算距离
-double get_distance(double lat1, double lng1, double lat2, double lng2)
-{
-    double radLat1 = radian(lat1);
-    double radLat2 = radian(lat2);
-    double a = radLat1 - radLat2;
-    double b = radian(lng1) - radian(lng2);
-    
-    double dst = 2 * asin((sqrt(pow(sin(a / 2), 2) + cos(radLat1) * cos(radLat2) * pow(sin(b / 2), 2) )));
-    
-    dst = dst * EARTH_RADIUS;
-    dst= round(dst * 10000) / 10000;
-    return dst;
-}
-
 
 uint8_t checkIsOutGeofencing(){
 
@@ -121,6 +95,34 @@ uint8_t checkIsOutGeofencing(){
     
 }
 
+/**
+ * 陀螺仪实时速度（单位：米每秒）
+*/
+int32_t acceleration_speed_current(){
+
+    //这里计算瞬时速度
+
+    //todo
+
+    return 0;
+
+}
+
+/**
+ * 陀螺仪实时加速度
+*/
+double acceleration_current(){
+
+
+    //这里计算加速度
+
+    //todo
+
+
+    
+    return 0;
+
+}
 
 void checkAll(){
 
@@ -172,7 +174,95 @@ void checkAll(){
     //检查温湿度
 
     //检查其它。。。
+
+
+
+
+    /****
+     * 判断是不是静止状态（相对地球是不是静止）
+     * 物体不存在绝对静止状态，只有相对静止状态。加速度计输出是0的时候，无法判断是相对地球静止，还是相对匀速运动的车、船静止。
+     * 判断条件：
+     * 在gps变化的时候，那么相对地球一定没有静止；
+     * 在加速度不等于0的时候，那么相对任何东西都没有静止。
+     * 所以，只有当加速度等于0，且GPS也没有距离变化时，才是相对地球静止。
+     * */    
+    if(acceleration_current() != 0)
+    {
+        LUAT_DEBUG_PRINT("is Move by ACC\n");
+        //在动
+        if(dpValue_stopTime > 0){
+            dpValue_stopTime--;//计算静止时长 单位：秒（正数是静止时长，负数是运动时长）
+        }
+        else{
+            dpValue_stopTime = -1;
+        }
+    }
+    else{
+
+        if(lat_last != 255 && lon_last != 255 && lat_current != 255 && lon_current != 255 && dpValue_frequency > 0){//有GPS定位模式){
+            //距离上一次超过10米，算移动（精度原因）
+            if(get_distance(lat_last, lon_last, lat_current, lon_current) > 0.01){
+                LUAT_DEBUG_PRINT("is Move by GPS\n");
+                //在动
+                if(dpValue_stopTime < 0){
+                    dpValue_stopTime--;//计算静止时长 单位：秒（正数是静止时长，负数是运动时长）
+                }
+                else{
+                    dpValue_stopTime = -1;
+                }
+            }
+            else{
+                LUAT_DEBUG_PRINT("not Move by GPS\n");
+                //静止
+                if(dpValue_stopTime > 0){
+                    dpValue_stopTime++;//计算静止时长 单位：秒（正数是静止时长，负数是运动时长）
+                }
+                else{
+                    dpValue_stopTime = 1;
+                }
+            }
+        }
+        else{
+            LUAT_DEBUG_PRINT("not Move on Begin\n");
+            //没有加速度，也还没有gps的时候，默认静止
+            if(dpValue_stopTime > 0){
+                dpValue_stopTime++;//计算静止时长 单位：秒（正数是静止时长，负数是运动时长）
+            }
+            else{
+                dpValue_stopTime = 1;
+            }
+        }
+
+    }
+
+    /**
+     * 单纯靠加速度来算速度，不一定可靠，因为匀速运动时加速度是0；要结合gps和加速度计，一起算速度才行。
+     * 先要依靠gps来算出当前参考系(车、船)相对于地球的移动速度，然后把加速度计的速度加上去，才是设备相对于地球的运动速度
+    */
+    if(lat_last != 255 && lon_last != 255 && lat_current != 255 && lon_current != 255 && dpValue_frequency > 0){
+        dpValue_speed = get_distance(lat_last, lon_last, lat_current, lon_current) * 1000 / dpValue_frequency;
+        dpValue_speed += acceleration_speed_current();
+        LUAT_DEBUG_PRINT("Speed GPS+ACC:%i\n",dpValue_speed);
+    }
+    else{
+        //没有gps的时候，只剩下室内的移动速度
+        dpValue_speed = acceleration_speed_current();
+        LUAT_DEBUG_PRINT("Speed ACC:%i\n",dpValue_speed);
+    }
     
+
+    //超速告警
+    if(dpValue_speed > dpValue_speedLimit){
+        if(dpValue_alarmFlag & (1 << 5)){//通知开关是否打开
+            LUAT_DEBUG_PRINT("Alarm 5\n");
+            //超速告警
+            dpValue_alarmStatus |= (1 << 5);
+        }
+    }
+    else{
+        //不超速了
+        dpValue_alarmStatus &= ~(1 << 5);
+    }
 }
 
 void luat_alarm_task(void *param)

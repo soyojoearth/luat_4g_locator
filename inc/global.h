@@ -96,4 +96,16 @@ extern int32_t dpValue_PascalMinLimit;
 extern int32_t dpValue_PascalMaxLimit;
 
 
+
+
+
+extern double lat_last;
+extern double lon_last;//上一次定位，用做计算有没有静止、移动的临时存储变量
+
+extern double lat_current;
+extern double lon_current;//当前定位，用做计算有没有静止、移动的临时存储变量
+
+//计算距离
+double get_distance(double lat1, double lng1, double lat2, double lng2);
+
 #endif
